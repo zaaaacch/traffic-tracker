@@ -1,0 +1,3 @@
+requests
+psycopg[binary]   # Postgres driver
+python-dotenv      # only for local testing
