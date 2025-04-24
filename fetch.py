@@ -5,9 +5,25 @@ NEON_CONN   = os.environ["NEON_CONN"]
 
 # 1. call Google Directions
 payload = {
-    "origin":      {"address": "1886 Amelia Oaks Dr, Fernandina Beach, FL"},
-    "destination": {"address": "96178 Sea Winds Dr, Fernandina Beach, FL"},
-    "routingPreference": "TRAFFIC_AWARE"
+  "origin": {
+    "location": {
+      "latLng": {
+        "latitude":  30.631357799405247,
+        "longitude": -81.4705143820595
+      }
+    }
+  },
+  "destination": {
+    "location": {
+      "latLng": {
+        "latitude":  30.6706931032008,
+        "longitude": -81.45884030610989
+      }
+    }
+  },
+
+  "travelMode":        "DRIVE",
+  "routingPreference": "TRAFFIC_AWARE"
 }
 r = requests.post(
     "https://routes.googleapis.com/directions/v2:computeRoutes?fields=routes.legs.duration",
