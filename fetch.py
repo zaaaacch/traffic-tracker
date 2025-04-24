@@ -7,7 +7,7 @@ NEON_CONN   = os.environ["NEON_CONN"]
 payload = {
     "origin":      {"address": "1886 Amelia Oaks Dr, Fernandina Beach, FL"},
     "destination": {"address": "96178 Sea Winds Dr, Fernandina Beach, FL"},
-    "routingPreference": "TRAFFIC_UNAWARE"
+    "routingPreference": "TRAFFIC_AWARE"
 }
 r = requests.post(
     "https://routes.googleapis.com/directions/v2:computeRoutes?fields=routes.legs.duration",
