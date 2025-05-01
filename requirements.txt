@@ -1,3 +1,4 @@
 requests
 psycopg[binary]   # Postgres driver
 python-dotenv      # only for local testing
+schedule  # for local task scheduling
