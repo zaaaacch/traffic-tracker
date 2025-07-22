@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Traffic Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <h1>Traffic Tracker</h1>
+    <canvas id="chart" width="600" height="400"></canvas>
+    <script>
+    async function loadData() {
+        const res = await fetch('/api/durations');
+        const data = await res.json();
+        const ctx = document.getElementById('chart').getContext('2d');
+        if (window.chart) {
+            window.chart.destroy();
+        }
+        window.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.timestamps,
+                datasets: [
+                    {
+                        label: 'Duration (s)',
+                        data: data.durations,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Average (s)',
+                        data: data.average,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Time' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Seconds' }
+                    }
+                }
+            }
+        });
+    }
+    loadData();
+    setInterval(loadData, 300000);
+    </script>
+</body>
+</html>

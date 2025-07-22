@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+import os
+import sqlite3
+import datetime
+import threading
+import time
+
+import requests
+import schedule
+from flask import Flask, jsonify, render_template
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GOOGLE_KEY = os.environ.get("GOOGLE_KEY")
+DB_PATH = os.environ.get("DB_PATH", "durations.db")
+
+app = Flask(__name__)
+
+
+def fetch_and_save():
+    payload = {
+        "origin": {
+            "location": {
+                "latLng": {
+                    "latitude": 30.631357799405247,
+                    "longitude": -81.4705143820595,
+                }
+            }
+        },
+        "destination": {
+            "location": {
+                "latLng": {
+                    "latitude": 30.6706931032008,
+                    "longitude": -81.45884030610989,
+                }
+            }
+        },
+        "travelMode": "DRIVE",
+        "routingPreference": "TRAFFIC_AWARE",
+    }
+    r = requests.post(
+        "https://routes.googleapis.com/directions/v2:computeRoutes?fields=routes.legs.duration",
+        headers={
+            "Content-Type": "application/json",
+            "X-Goog-FieldMask": "*",
+            "X-Goog-Api-Key": GOOGLE_KEY,
+        },
+        json=payload,
+        timeout=20,
+    )
+    r.raise_for_status()
+    seconds = int(r.json()["routes"][0]["legs"][0]["duration"][:-1])
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        create table if not exists durations(
+            id integer primary key autoincrement,
+            fetched_at text default (datetime('now')),
+            seconds integer not null
+        );
+        """
+    )
+    cur.execute("insert into durations(seconds) values (?)", (seconds,))
+    conn.commit()
+    conn.close()
+    print(f"saved {seconds}s at {datetime.datetime.utcnow().isoformat()}Z")
+
+
+def get_durations():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        create table if not exists durations(
+            id integer primary key autoincrement,
+            fetched_at text default (datetime('now')),
+            seconds integer not null
+        );
+        """
+    )
+    cur.execute("select fetched_at, seconds from durations order by fetched_at")
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+@app.route("/api/durations")
+def api_durations():
+    rows = get_durations()
+    timestamps = [r[0] for r in rows]
+    durations = [r[1] for r in rows]
+    averages = []
+    total = 0
+    for i, d in enumerate(durations, 1):
+        total += d
+        averages.append(total / i)
+    return jsonify({"timestamps": timestamps, "durations": durations, "average": averages})
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+def run_scheduler():
+    schedule.every(5).minutes.do(fetch_and_save)
+    fetch_and_save()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    threading.Thread(target=run_scheduler, daemon=True).start()
+    app.run(host="0.0.0.0", port=8000)
